@@ -9,9 +9,10 @@ public final class Database {
     private Database() {}
 
     public static void add(Entity e) {
-        int newId = entities.isEmpty() ? 1 : getMaxId() + 1;
-        e.id = newId;
-        entities.add(e);
+        Entity copy = e.copy();
+        copy.id = entities.isEmpty() ? 1 : getMaxId() + 1;
+        entities.add(copy);
+        e.id = copy.id ;
     }
 
     private static int getMaxId() {
@@ -27,7 +28,7 @@ public final class Database {
         if (found == null) {
             throw new EntityNotFoundException(id);
         }
-        return found;
+        return found.copy();
     }
 
     private static Entity findById(int id) {
@@ -45,9 +46,10 @@ public final class Database {
     }
 
     public static void update(Entity e) {
+        Entity copy = e.copy();
         for (int i = 0; i < entities.size(); ++i) {
             if (entities.get(i).id == e.id) {
-                entities.set(i, e);
+                entities.set(i ,copy);
                 return;
             }
         }
