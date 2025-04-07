@@ -3,6 +3,7 @@ package db;
 import db.exception.*;
 
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.HashMap;
 
 public final class Database {
@@ -12,6 +13,12 @@ public final class Database {
     private Database() {}
 
     public static void add(Entity e) {
+        if (e instanceof Trackable) {
+            Trackable trackable = (Trackable) e;
+            Date now = new Date();
+            trackable.setCreationDate(now);
+            trackable.setLastModificationDate(now);
+        }
         validateEntityIfPossible(e);
         Entity copy = e.copy();
         copy.id = entities.isEmpty() ? 1 : getMaxId() + 1;
@@ -50,6 +57,11 @@ public final class Database {
     }
 
     public static void update(Entity e) {
+        if (e instanceof Trackable) {
+            Trackable trackable = (Trackable) e;
+            Date now = new Date();
+            trackable.setLastModificationDate(now);
+        }
         validateEntityIfPossible(e);
         Entity copy = e.copy();
         for (int i = 0; i < entities.size(); ++i) {
