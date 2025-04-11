@@ -1,10 +1,9 @@
 package db;
 
 import db.exception.*;
+import todo.entity.*;
 
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.HashMap;
+import java.util.*;
 
 public final class Database {
     private static final ArrayList<Entity> entities = new ArrayList<Entity>();
@@ -59,12 +58,13 @@ public final class Database {
     public static void update(Entity e) {
         if (e instanceof Trackable) {
             Trackable trackable = (Trackable) e;
-            Date now = new Date();
-            trackable.setLastModificationDate(now);
+            trackable.setLastModificationDate(new Date());
         }
+
         validateEntityIfPossible(e);
         Entity copy = e.copy();
-        for (int i = 0; i < entities.size(); ++i) {
+
+        for (int i = 0 ; i < entities.size() ; ++i) {
             if (entities.get(i).id == e.id) {
                 entities.set(i ,copy);
                 return;
@@ -90,4 +90,33 @@ public final class Database {
         }
     }
 
-}
+    public static List<Task> getAllTasks(int entityCode) {
+        List<Task> tasks = new ArrayList<>();
+        for (Entity entity : entities) {
+            if (entity instanceof Task) {
+                tasks.add((Task) entity.copy());
+            }
+        }
+        return tasks;
+    }
+
+    public static List<Step> getAllSteps() {
+        List<Step> steps = new ArrayList<>();
+        for (Entity entity : entities) {
+            if (entity instanceof Step) {
+                steps.add((Step) entity.copy());
+            }
+        }
+        return steps;
+    }
+
+    public static List<Step> getStepsByTask(int taskId) {
+        List<Step> steps = new ArrayList<>();
+        for (Entity entity : entities) {
+            if (entity instanceof Step && ((Step) entity).getTaskRef() == taskId) {
+                steps.add((Step) entity.copy());
+            }
+        }
+        return steps;
+    }
+    }
