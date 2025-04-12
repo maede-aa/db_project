@@ -1,15 +1,20 @@
 package todo;
 
-import todo.service.StepService;
-import todo.service.TaskService;
+import todo.service.*;
+import db.exception.EntityNotFoundException;
+import todo.entity.Task;
 
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.Scanner;
 
 public class CommandProcessor {
-    private final Scanner scanner;
+    private final Scanner scn;
+    private final SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
 
-    public CommandProcessor(Scanner scanner) {
-        this.scanner = scanner;
+    public CommandProcessor(Scanner scn) {
+        this.scn = scn;
     }
 
     public void start() {
@@ -18,116 +23,107 @@ public class CommandProcessor {
 
         while (true) {
             System.out.print("\n> ");
-            String input = scanner.nextLine().trim();
+            String input = scn.nextLine();
 
             if (input.equalsIgnoreCase("exit")) {
                 System.out.println("Exiting program...");
                 break;
             }
 
-            processCommand(input);
+            try {
+                processCommand(input);
+            } catch (Exception e) {
+                System.out.println("Error : " + e.getMessage());
+            }
         }
     }
 
-    private void processCommand(String input) {
-        try {
-            String[] parts = input.split(" ");
-            String mainCommand = parts[0].toLowerCase();
+    private void processCommand(String input) throws Exception {
+        String[] parts = input.split(" ");
+        String mainCommand = parts[0].toLowerCase();
 
-            switch (mainCommand) {
-                case "add":
-                    handleAddCommand(parts);
-                    break;
-
-                case "delete":
-                    handleDeleteCommand();
-                    break;
-
-                case "update":
-                    handleUpdateCommand(parts);
-                    break;
-
-                case "get":
-                    handleGetCommand(parts);
-                    break;
-
-                case "help":
-                    printHelp();
-                    break;
-
-                default:
-                    System.out.println("Invalid command. Type 'help' for available commands.");
-            }
-        } catch (Exception e) {
-            System.out.println("Error: " + e.getMessage());
+        switch (mainCommand) {
+            case "add":
+                handleAddCommand(parts);
+                break;
+            case "delete":
+                handleDeleteCommand();
+                break;
+            case "update":
+                handleUpdateCommand(parts);
+                break;
+            case "get":
+                handleGetCommand(parts);
+                break;
+            case "help":
+                printHelp();
+                break;
+            default:
+                System.out.println("Invalid command. Type 'help' for available commands.");
         }
     }
 
     private void handleAddCommand(String[] parts) throws Exception {
         if (parts.length < 2) {
-            throw new Exception("Missing object type (task/step)");
+            throw new Exception("Missing object type (task / step)");
         }
 
         String objectType = parts[1].toLowerCase();
 
         if (objectType.equals("task")) {
-            System.out.print("Task title: ");
-            String title = scanner.nextLine();
+            System.out.print("Title: ");
+            String title = scn.nextLine();
 
             System.out.print("Description: ");
-            String description = scanner.nextLine();
+            String description = scn.nextLine();
 
-            System.out.print("Due date (yyyy-MM-dd): ");
-            String dueDate = scanner.nextLine();
+            System.out.print("Due date :");
+            Date dueDate = parseDate(scn.nextLine());
 
-            TaskService.addTask(title, description, dueDate);
+            int taskId = TaskService.createTask(title, description, dueDate);
+            System.out.println("Task saved successfully.");
+            System.out.println("ID : " + taskId);
         }
         else if (objectType.equals("step")) {
-            System.out.print("For Task ID: ");
-            int taskId = Integer.parseInt(scanner.nextLine());
+            System.out.print("TaskID : ");
+            int taskId = Integer.parseInt(scn.nextLine());
 
-            System.out.print("Step title: ");
-            String title = scanner.nextLine();
+            System.out.print("Title : ");
+            String title = scn.nextLine();
 
             StepService.addStep(taskId, title);
         }
         else {
-            throw new Exception("Invalid object type. Use 'task' or 'step'");
+            throw new Exception("Invalid object type. Use 'task' or 'step'.");
         }
     }
 
     private void handleDeleteCommand() throws Exception {
-        System.out.print("Enter ID to delete: ");
-        int id = Integer.parseInt(scanner.nextLine());
+        System.out.print("ID: ");
+        int id = Integer.parseInt(scn.nextLine());
 
-        if (TaskService.taskExists(id)) {
-            TaskService.deleteTask(id);
-            System.out.println("Task deleted successfully.");
-        }
-        else if (StepService.stepExists(id)) {
+        try {
+            TaskService.removeTask(id);
+        } catch (EntityNotFoundException e) {
             StepService.deleteStep(id);
-            System.out.println("Step deleted successfully.");
-        }
-        else {
-            throw new Exception("No entity found with ID: " + id);
         }
     }
 
     private void handleUpdateCommand(String[] parts) throws Exception {
         if (parts.length < 2) {
-            throw new Exception("Missing object type (task/step)");
+            throw new Exception("Missing object type (task / step)");
         }
 
         String objectType = parts[1].toLowerCase();
 
-        System.out.print("Enter ID: ");
-        int id = Integer.parseInt(scanner.nextLine());
+        System.out.print("ID: ");
+        int id = Integer.parseInt(scn.nextLine());
 
-        System.out.print("Field to update: ");
-        String field = scanner.nextLine();
+        System.out.print("Field: ");
+        String field = scn.nextLine();
 
-        System.out.print("New value: ");
-        String value = scanner.nextLine();
+        System.out.print("New Value: ");
+        String value = scn.nextLine();
 
         if (objectType.equals("task")) {
             TaskService.updateTask(id, field, value);
@@ -142,25 +138,30 @@ public class CommandProcessor {
 
     private void handleGetCommand(String[] parts) throws Exception {
         if (parts.length < 2) {
-            throw new Exception("Missing query type (tasks/steps/task)");
+            throw new Exception("Missing query type (all-tasks / incomplete-tasks / task-by-id)");
         }
 
         String queryType = parts[1].toLowerCase();
 
-        if (queryType.equals("tasks")) {
-            TaskService.listAllTasks();
+        if (queryType.equals("all-tasks")) {
+            TaskService.printAllTasks();
         }
-        else if (queryType.equals("steps")) {
-            StepService.listAllSteps();
+        else if (queryType.equals("incomplete-tasks")) {
+            TaskService.printIncompleteTasks();
         }
-        else if (queryType.equals("task")) {
-            System.out.print("Enter Task ID: ");
-            int id = Integer.parseInt(scanner.nextLine());
-            TaskService.showTaskDetails(id);
+        else if (queryType.equals("task-by-id")) {
+            System.out.print("ID: ");
+            int id = Integer.parseInt(scn.nextLine());
+            Task task = TaskService.getTask(id);
+            TaskService.printTaskWithSteps(task);
         }
         else {
-            throw new Exception("Invalid query type. Use 'tasks', 'steps' or 'task'");
+            throw new Exception("Invalid query type");
         }
+    }
+
+    private Date parseDate(String dateStr) throws ParseException {
+        return dateFormat.parse(dateStr);
     }
 
     private void printHelp() {
@@ -170,9 +171,9 @@ public class CommandProcessor {
         System.out.println("  delete         - Delete an item by ID");
         System.out.println("  update task    - Update a task");
         System.out.println("  update step    - Update a step");
-        System.out.println("  get tasks      - List all tasks");
-        System.out.println("  get steps      - List all steps");
-        System.out.println("  get task       - Show task details");
+        System.out.println("  get all-tasks      - List all tasks");
+        System.out.println("  get incomplete-tasks - List incomplete tasks");
+        System.out.println("  get task-by-id     - Show task details");
         System.out.println("  help           - Show this help");
         System.out.println("  exit           - Exit the program");
     }

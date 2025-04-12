@@ -5,6 +5,7 @@ import db.*;
 import java.util.Date;
 
 public class Task extends Entity implements Trackable {
+    public static final int TASK_ENTITY_CODE = 11;
 
     public enum Status {
         NotStarted,
@@ -106,7 +107,7 @@ public class Task extends Entity implements Trackable {
 
     @Override
     public int getEntityCode() {
-        return 11;
+        return TASK_ENTITY_CODE;
     }
 
     @Override

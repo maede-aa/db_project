@@ -5,6 +5,8 @@ import db.Entity;
 import java.util.Date;
 
 public class Step extends Entity {
+    public static final int STEP_ENTITY_CODE = 22;
+
     public enum Status {
         NotStarted,
         Completed
@@ -49,6 +51,14 @@ public class Step extends Entity {
         return title;
     }
 
+    public Date getCreationDate() {
+        return creationDate;
+    }
+
+    public Date getLastModificationDate() {
+        return lastModificationDate;
+    }
+
     @Override
     public Entity copy() {
         Step copy = new Step();
@@ -63,7 +73,6 @@ public class Step extends Entity {
 
     @Override
     public int getEntityCode() {
-        return 22;
+        return STEP_ENTITY_CODE;
     }
-
 }
