@@ -90,33 +90,39 @@ public final class Database {
         }
     }
 
-    public static List<Task> getAllTasks(int entityCode) {
+    public static List<Task> getAllTasks() {
         List<Task> tasks = new ArrayList<>();
         for (Entity entity : entities) {
-            if (entity instanceof Task) {
+            if (entity.getEntityCode() == Task.TASK_ENTITY_CODE) {
                 tasks.add((Task) entity.copy());
             }
         }
         return tasks;
     }
 
-    public static List<Step> getAllSteps() {
-        List<Step> steps = new ArrayList<>();
+    public static List<Task> getIncompleteTasks() {
+        List<Task> tasks = new ArrayList<>();
         for (Entity entity : entities) {
-            if (entity instanceof Step) {
-                steps.add((Step) entity.copy());
+            if (entity.getEntityCode() == Task.TASK_ENTITY_CODE) {
+                Task task = (Task) entity;
+                if (task.getStatus() != Task.Status.Completed) {
+                    tasks.add((Task) task.copy());
+                }
             }
         }
-        return steps;
+        return tasks;
     }
 
     public static List<Step> getStepsByTask(int taskId) {
         List<Step> steps = new ArrayList<>();
         for (Entity entity : entities) {
-            if (entity instanceof Step && ((Step) entity).getTaskRef() == taskId) {
-                steps.add((Step) entity.copy());
+            if (entity.getEntityCode() == Step.STEP_ENTITY_CODE) {
+                Step step = (Step) entity;
+                if (step.getTaskRef() == taskId) {
+                    steps.add((Step) step.copy());
+                }
             }
         }
         return steps;
     }
-    }
+}

@@ -3,24 +3,23 @@ package todo.service;
 import db.Database;
 import db.exception.EntityNotFoundException;
 import todo.entity.*;
-import java.util.*;
+import todo.entity.Task.Status;
+
+import java.util.Date;
+import java.util.List;
 
 public class TaskService {
-    private static final Map<Integer, String> tasks = new HashMap<>();
-    private static int idCounter = 1;
-
-    public static int createTask(String title, String description, Date dueDate, Task.Category category, Task.Priority priority) {
+    public static int createTask(String title, String description, Date dueDate) throws Exception {
         Task task = new Task();
         task.setTitle(title);
         task.setDescription(description);
         task.setDueDate(dueDate);
-        task.setCategory(category);
-        task.setPriority(priority);
+        task.setStatus(Status.NotStarted);
         Database.add(task);
         return task.id;
     }
 
-    public static void removeTask(int taskId) {
+    public static void removeTask(int taskId) throws EntityNotFoundException {
         List<Step> steps = Database.getStepsByTask(taskId);
         for (Step step : steps) {
             Database.delete(step.id);
@@ -28,102 +27,78 @@ public class TaskService {
         Database.delete(taskId);
     }
 
-    public static Task getTask(int taskId) {
-        try {
-            return (Task) Database.get(taskId);
-        } catch (Exception e) {
-            throw new EntityNotFoundException("Task not found with ID: " + taskId);
+    public static Task getTask(int taskId) throws EntityNotFoundException {
+        return (Task) Database.get(taskId);
+    }
+
+    public static void updateTask(int taskId, String field, String value) throws Exception {
+        Task task = getTask(taskId);
+
+        switch (field.toLowerCase()) {
+            case "title":
+                task.setTitle(value);
+                break;
+            case "description":
+                task.setDescription(value);
+                break;
+            case "duedate":
+                break;
+            case "status":
+                Status newStatus = Status.valueOf(value);
+                task.setStatus(newStatus);
+                if (newStatus == Status.Completed) {
+                    completeAllSteps(taskId);
+                }
+                break;
+            default:
+                throw new IllegalArgumentException("Invalid field: " + field);
+        }
+        Database.update(task);
+    }
+
+    private static void completeAllSteps(int taskId) throws EntityNotFoundException {
+        List<Step> steps = Database.getStepsByTask(taskId);
+        for (Step step : steps) {
+            step.setStatus(Step.Status.Completed);
+            Database.update(step);
         }
     }
 
-    public static List<Task> getAllTasks() {
-        return Database.getAllTasks();
-    }
-
-    public static void changeTaskTitle(int taskId, String newTitle) {
-        Task task = getTask(taskId);
-        task.setTitle(newTitle);
-        Database.update(task);
-    }
-
-    public static void changeTaskStatus(int taskId, Task.Status newStatus) {
-        Task task = getTask(taskId);
-        task.setStatus(newStatus);
-        Database.update(task);
-    }
-
-    public static void changeTaskPriority(int taskId, Task.Priority newPriority) {
-        Task task = getTask(taskId);
-        task.setPriority(newPriority);
-        Database.update(task);
-    }
-
-
-
-    public static void showTaskDetails(int taskId) {
-        Task task = getTask(taskId);
-        System.out.println("Task Details:");
+    public static void printTaskDetails(Task task) {
         System.out.println("ID: " + task.id);
         System.out.println("Title: " + task.getTitle());
         System.out.println("Description: " + task.getDescription());
-        System.out.println("Due Date: " + (task.getDueDate()));
+        System.out.println("Due Date: " + task.getDueDate());
         System.out.println("Status: " + task.getStatus());
-        System.out.println("Priority: " + task.getPriority());
-        System.out.println("Category: " + task.getCategory());
     }
 
-public static void addTask(String title, String description, String dueDate) {
-    TaskService.tasks.put(idCounter++, title + " | " + description + " | " + dueDate);
-    System.out.println("Task added successfully.");
-}
+    public static void printTaskWithSteps(Task task) {
+        printTaskDetails(task);
 
-public static boolean taskExists(int id) {
-    return TaskService.tasks.containsKey(id);
-}
-
-public static void deleteTask(int id) {
-    TaskService.tasks.remove(id);
-}
-
-public static void updateTask(int id, String field, String value) {
-    if (!TaskService.tasks.containsKey(id)) {
-        System.out.println("Task not found.");
-        return;
+        List<Step> steps = Database.getStepsByTask(task.id);
+        if (!steps.isEmpty()) {
+            System.out.println("Steps:");
+            for (Step step : steps) {
+                System.out.println("    + " + step.getTitle() + ":");
+                System.out.println("        ID: " + step.id);
+                System.out.println("        Status: " + step.getStatus());
+            }
+        }
     }
 
-    String[] parts = TaskService.tasks.get(id).split(" \\| ");
-    switch (field.toLowerCase()) {
-        case "title":
-            parts[0] = value;
-            break;
-        case "description":
-            parts[1] = value;
-            break;
-        case "duedate":
-            parts[2] = value;
-            break;
-        default:
-            System.out.println("Invalid field.");
-            return;
+    public static void printAllTasks() {
+        List<Task> tasks = Database.getAllTasks();
+        for (Task task : tasks) {
+            printTaskWithSteps(task);
+            System.out.println();
+        }
     }
 
-    TaskService.tasks.put(id, String.join(" | ", parts));
-    System.out.println("Task updated.");
-}
-
-public static void listAllTasks() {
-    for (Map.Entry<Integer, String> entry : TaskService.tasks.entrySet()) {
-        System.out.println("ID: " + entry.getKey() + " - " + entry.getValue());
+    public static void printIncompleteTasks() {
+        List<Task> tasks = Database.getIncompleteTasks();
+        for (Task task : tasks) {
+            printTaskWithSteps(task);
+            System.out.println();
+        }
     }
 }
-
-public static void showTaskDetails(int id) {
-    if (!TaskService.tasks.containsKey(id)) {
-        System.out.println("Task not found.");
-        return;
-    }
-
-    System.out.println("Task Details:");
-    System.out.println("ID: " + id + " - " + TaskService.tasks.get(id));
-    }
-    }

@@ -1,87 +1,79 @@
 package todo.service;
 
-import java.util.HashMap;
-import java.util.Map;
+import db.Database;
+import db.exception.EntityNotFoundException;
+import todo.entity.*;
+import java.util.List;
 
 public class StepService {
-    private static final Map<Integer, String> steps = new HashMap<>();
-    private static int idCounter = 1;
 
-    public static void addStep(int taskId, String title) {
-        steps.put(idCounter++, "TaskID: " + taskId + " | " + title);
-        System.out.println("Step added successfully.");
+    public static void addStep(int taskId, String title) throws EntityNotFoundException {
+
+        Task task = (Task) Database.get(taskId);
+        Step step = new Step();
+        step.setTitle(title);
+        step.setTaskRef(taskId);
+        Database.add(step);
+
+        System.out.println("Step saved successfully.");
+        System.out.println("ID : " + step.id);
+        System.out.println("Creation Date : " + step.getCreationDate());
     }
 
-    public static boolean stepExists(int id) {
-        return steps.containsKey(id);
+    public static void deleteStep(int id) throws EntityNotFoundException {
+        Database.delete(id);
+        System.out.println("Entity with ID = " + id + " successfully deleted.");
     }
 
-    public static void deleteStep(int id) {
-        steps.remove(id);
-    }
+    public static void updateStep(int id, String field, String value) throws Exception {
+        Step step = (Step) Database.get(id);
+        String oldValue = "";
 
-    public static void updateStep(int id, String field, String value) {
-        if (!steps.containsKey(id)) {
-            System.out.println("Step not found.");
-            return;
-        }
-
-        String old = steps.get(id);
-        String[] parts = old.split(" \\| ");
         switch (field.toLowerCase()) {
             case "title":
-                parts[1] = " " + value;
+                oldValue = step.getTitle();
+                step.setTitle(value);
+                break;
+            case "status":
+                oldValue = step.getStatus().toString();
+                Step.Status newStatus = Step.Status.valueOf(value);
+                step.setStatus(newStatus);
+                updateParentTaskStatus(step.getTaskRef());
                 break;
             default:
-                System.out.println("Invalid field.");
-                return;
+                throw new IllegalArgumentException("Invalid field: " + field);
         }
 
-        steps.put(id, String.join(" |", parts));
-        System.out.println("Step updated.");
+        Database.update(step);
+
+        System.out.println("Successfully updated the step.");
+        System.out.println("Field: " + field);
+        System.out.println("Old Value: " + oldValue);
+        System.out.println("New Value: " + value);
+        System.out.println("Modification Date: " + step.getLastModificationDate());
     }
 
-    public static void listAllSteps() {
-        for (Map.Entry<Integer, String> entry : steps.entrySet()) {
-            System.out.println("ID: " + entry.getKey() + " - " + entry.getValue());
+    private static void updateParentTaskStatus(int taskId) throws EntityNotFoundException {
+        Task task = (Task) Database.get(taskId);
+        List<Step> steps = Database.getStepsByTask(taskId);
+
+        boolean allCompleted = true;
+        boolean anyCompleted = false;
+
+        for (Step step : steps) {
+            if (step.getStatus() != Step.Status.Completed) {
+                allCompleted = false;
+            } else {
+                anyCompleted = true;
+            }
         }
-    }
 
-    public static void addStep(int taskId, String title) {
-        steps.put(idCounter++, "TaskID: " + taskId + " | " + title);
-        System.out.println("Step added successfully.");
-    }
-
-    public static boolean stepExists(int id) {
-        return steps.containsKey(id);
-    }
-
-    ublic static void deleteStep(int id) {
-        steps.remove(id);
-    }
-
-    public static void updateStep(int id, String field, String value) {
-        if (!steps.containsKey(id)) {
-            System.out.println("Step not found.");
-            return;
+        if (allCompleted) {
+            task.setStatus(Task.Status.Completed);
+        } else if (anyCompleted && task.getStatus() == Task.Status.NotStarted) {
+            task.setStatus(Task.Status.InProgress);
         }
-        String old = steps.get(id);
-        String[] parts = old.split(" \\| ");
-        switch (field.toLowerCase()) {
-            case "title":
-                parts[1] = " " + value;
-                break;
-            default:
-                System.out.println("Invalid field.");
-                return;
-        }
-        steps.put(id, String.join(" |", parts));
-        System.out.println("Step updated.");
-    }
 
-    public static void listAllSteps() {
-        for (Map.Entry<Integer, String> entry : steps.entrySet()) {
-            System.out.println("ID: " + entry.getKey() + " - " + entry.getValue());
-        }
+        Database.update(task);
     }
 }
