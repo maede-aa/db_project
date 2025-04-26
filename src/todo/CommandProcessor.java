@@ -55,6 +55,9 @@ public class CommandProcessor {
             case "get":
                 handleGetCommand(parts);
                 break;
+            case "category":
+                handleCategoryCommand(parts);
+                break;
             case "help":
                 printHelp();
                 break;
@@ -160,6 +163,23 @@ public class CommandProcessor {
         }
     }
 
+    private void handleCategoryCommand(String[] parts) throws Exception {
+        if (parts.length < 2) {
+            throw new Exception("Please specify category name");
+        }
+
+        String categoryName = parts[1];
+        try {
+            Task.Category category = Task.Category.valueOf(categoryName);
+            TaskService.printTasksByCategory(category);
+        } catch (IllegalArgumentException e) {
+            System.out.println("Invalid category. Available categories:");
+            for (Task.Category catagoryy : Task.Category.values()) {
+                System.out.println("- " + catagoryy.name());
+            }
+        }
+    }
+
     private Date parseDate(String dateStr) throws ParseException {
         return dateFormat.parse(dateStr);
     }
@@ -174,6 +194,7 @@ public class CommandProcessor {
         System.out.println("  get all-tasks      - List all tasks");
         System.out.println("  get incomplete-tasks - List incomplete tasks");
         System.out.println("  get task-by-id     - Show task details");
+        System.out.println("  category <name> - Show tasks in a specific category");
         System.out.println("  help           - Show this help");
         System.out.println("  exit           - Exit the program");
     }

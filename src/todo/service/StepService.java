@@ -33,18 +33,18 @@ public class StepService {
             case "title":
                 oldValue = step.getTitle();
                 step.setTitle(value);
+                Database.update(step);
                 break;
             case "status":
                 oldValue = step.getStatus().toString();
                 Step.Status newStatus = Step.Status.valueOf(value);
                 step.setStatus(newStatus);
+                Database.update(step);
                 updateParentTaskStatus(step.getTaskRef());
                 break;
             default:
                 throw new IllegalArgumentException("Invalid field: " + field);
         }
-
-        Database.update(step);
 
         System.out.println("Successfully updated the step.");
         System.out.println("Field: " + field);

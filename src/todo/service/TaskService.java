@@ -5,6 +5,8 @@ import db.exception.EntityNotFoundException;
 import todo.entity.*;
 import todo.entity.Task.Status;
 
+import java.text.SimpleDateFormat;
+import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
 
@@ -42,12 +44,31 @@ public class TaskService {
                 task.setDescription(value);
                 break;
             case "duedate":
+                SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
+                Date dueDate = dateFormat.parse(value);
+                task.setDueDate(dueDate);
                 break;
             case "status":
                 Status newStatus = Status.valueOf(value);
                 task.setStatus(newStatus);
                 if (newStatus == Status.Completed) {
                     completeAllSteps(taskId);
+                }
+                break;
+            case "category":
+                try {
+                    Task.Category newCategory = Task.Category.valueOf(value);
+                    task.setCategory(newCategory);
+                } catch (IllegalArgumentException e) {
+                    throw new IllegalArgumentException("Invalid category.");
+                }
+                break;
+            case "priority":
+                try {
+                    Task.Priority newPriority = Task.Priority.valueOf(value);
+                    task.setPriority(newPriority);
+                } catch (IllegalArgumentException e) {
+                    throw new IllegalArgumentException("Invalid priority.");
                 }
                 break;
             default:
@@ -99,6 +120,24 @@ public class TaskService {
         for (Task task : tasks) {
             printTaskWithSteps(task);
             System.out.println();
+        }
+    }
+
+    public static void printTasksByCategory(Task.Category category) {
+        List<Task> allTasks = Database.getAllTasks();
+        System.out.println("\n===== Tasks in Category: " + category + " =====");
+
+        boolean found = false;
+        for (Task task : allTasks) {
+            if (task.getCategory() == category) {
+                printTaskDetails(task);
+                System.out.println("------------------------");
+                found = true;
+            }
+        }
+
+        if (!found) {
+            System.out.println("No tasks found in this category.");
         }
     }
 }
