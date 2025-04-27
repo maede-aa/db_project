@@ -3,11 +3,13 @@ package db;
 import db.exception.*;
 import todo.entity.*;
 
+import java.io.*;
 import java.util.*;
 
 public final class Database {
     private static final ArrayList<Entity> entities = new ArrayList<Entity>();
     private static HashMap<Integer, Validator> validators = new HashMap<Integer, Validator>();
+    private static final HashMap<Integer, Serializer> serializers = new HashMap<>();
 
     private Database() {}
 
@@ -125,4 +127,41 @@ public final class Database {
         }
         return steps;
     }
+
+    public static void registerSerializer(int entityCode, Serializer serializer) {
+        serializers.put(entityCode, serializer);
+    }
+
+    public static void save() {
+        try (PrintWriter writer = new PrintWriter("db.txt")) {
+            for (Entity entity : entities) {
+                Serializer serializer = serializers.get(entity.getEntityCode());
+                if (serializer != null) {
+                    writer.println(entity.getEntityCode());
+                    writer.println(serializer.serialize(entity));
+                }
+            }
+        } catch (IOException e) {
+            System.out.println("Error saving database: " + e.getMessage());
+        }
+    }
+
+    public static void load() {
+        entities.clear();
+        try (BufferedReader reader = new BufferedReader(new FileReader("db.txt"))) {
+            String line;
+            while ((line = reader.readLine()) != null) {
+                int entityCode = Integer.parseInt(line);
+                String data = reader.readLine();
+                Serializer serializer = serializers.get(entityCode);
+                if (serializer != null) {
+                    entities.add(serializer.deserialize(data));
+                }
+            }
+        } catch (FileNotFoundException e) {
+        } catch (IOException e) {
+            System.out.println("Error loading database: " + e.getMessage());
+        }
+    }
+
 }

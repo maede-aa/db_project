@@ -1,5 +1,6 @@
 package todo;
 
+import db.Database;
 import todo.service.*;
 import db.exception.EntityNotFoundException;
 import todo.entity.Task;
@@ -43,6 +44,10 @@ public class CommandProcessor {
         String mainCommand = parts[0].toLowerCase();
 
         switch (mainCommand) {
+            case "save":
+                Database.save();
+                System.out.println("Database saved successfully");
+                break;
             case "add":
                 handleAddCommand(parts);
                 break;
@@ -186,6 +191,7 @@ public class CommandProcessor {
 
     private void printHelp() {
         System.out.println("\nAvailable Commands:");
+        System.out.println("save        -data storage");
         System.out.println("  add task       - Create a new task");
         System.out.println("  add step       - Create a new step");
         System.out.println("  delete         - Delete an item by ID");
